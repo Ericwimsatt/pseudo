@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pseudocode: file_to_pseudo.py</title>
+<link rel="stylesheet" href="pseudo.css">
+</head>
+<body>
+<p class="pseudo-assignment">set PY_LANGUAGE to Language(tspython.language())</p>
+<p class="pseudo-assignment">set MIRRORS_DIR to Path(__file__).parent / "mirrors"</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// Parser</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function _make_parser():</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return Parser(PY_LANGUAGE)</p>
+<p class="pseudo-function">function _parse():</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return _make_parser().parse(src_bytes)</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// Node helpers</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function _text(node):</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return node.text.decode("utf-8", errors="replace")</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// Statement-level transformers</p>
+<p class="pseudo-comment">// Each returns a plain-text pseudocode string (no HTML).</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function _for_header(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// for _ in range(N)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if left_text == "_" and right and right.type == "call":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set fn to right.child_by_field_name("function")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set args to right.child_by_field_name("arguments")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if fn and _text(fn) == "range" and args:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set named to args.named_children</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if len(named) == 1:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"do {_text(named[0])} times"</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// for x in range(N)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if right and right.type == "call":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set fn to right.child_by_field_name("function")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set args to right.child_by_field_name("arguments")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if fn and _text(fn) == "range" and args:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set named to args.named_children</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if len(named) == 1:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set n to _text(named[0])</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"for {left_text} from 0 to {n} - 1"</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// default</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"for each {left_text} in {right_text}"</p>
+<p class="pseudo-function">function _function_header(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set name to node.child_by_field_name("name")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set params to node.child_by_field_name("parameters")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set name_text to _text(name) if name else "?"</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set param_parts to []</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if params:</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in params.named_children:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set t to child.type</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if t == "identifier":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(_text(child))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t in ("default_parameter", "typed_parameter", "typed_default_parameter"):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set n to child.child_by_field_name("name")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if n:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(_text(n))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t == "list_splat_pattern":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set inner to child.named_children[0] if child.named_children else None</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("*" + (_text(inner) if inner else "args"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t == "dictionary_splat_pattern":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set inner to child.named_children[0] if child.named_children else None</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("**" + (_text(inner) if inner else "kwargs"))</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"function {name_text}({', '.join(param_parts)})"</p>
+<p class="pseudo-function">function _assignment_line(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"set {left_text} to {right_text}"</p>
+<p class="pseudo-function">function _augmented_assignment_line(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set op_node to node.child_by_field_name("operator")</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Fallback: search anonymous children for the operator token</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if op_node is None:</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.children:</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type in ("+=", "-=", "*=", "/=", "//=", "%=", "**=", "&amp;=", "|=", "^="):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set op_node to child</p>
+<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set op to _text(op_node) if op_node else "?"</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set ops to {
+        "+=": f"add {right_text} to {left_text}",
+        "-=": f"subtract {right_text} from {left_text}",
+        "*=": f"multiply {left_text} by {right_text}",
+        "/=": f"divide {left_text} by {right_text}",
+        "//=": f"floor-divide {left_text} by {right_text}",
+        "%=": f"{left_text} mod= {right_text}",
+        "**=": f"raise {left_text} to the power of {right_text}",
+    }</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return ops.get(op, f"{left_text} {op} {right_text}")</p>
+<p class="pseudo-function">function _return_line(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set named to node.named_children</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if named:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"return {_text(named[0])}"</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return "return"</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// Main recursive converter</p>
+<p class="pseudo-comment">// Appends (depth: int, text: str) tuples to `out`.</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function _convert(node):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set t to node.type</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if t == "module":</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "block":</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "comment":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set text to _text(node)[1:].strip()</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"// {text}", "pseudo-comment"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t in ("import_statement", "import_from_statement"):</p>
+<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// skipped per transformations table</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "function_definition":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _function_header(node) + ":", "pseudo-function"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "if_statement":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond to node.child_by_field_name("condition")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"if {_text(cond) if cond else '?'}:", "pseudo-if"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set consequence to node.child_by_field_name("consequence")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if consequence:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(consequence, depth + 1, out)</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// elif and else are named_children of the if_statement</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type == "elif_clause":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond2 to child.child_by_field_name("condition")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"else if {_text(cond2) if cond2 else '?'}:", "pseudo-if"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cons2 to child.child_by_field_name("consequence")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if cons2:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(cons2, depth + 1, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if child.type == "else_clause":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "otherwise:", "pseudo-if"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to child.child_by_field_name("body")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "for_statement":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _for_header(node) + ":", "pseudo-for"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "while_statement":</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond to node.child_by_field_name("condition")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"while {_text(cond) if cond else '?'}:", "pseudo-while"))</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "assignment":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _assignment_line(node), "pseudo-assignment"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "augmented_assignment":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _augmented_assignment_line(node), "pseudo-assignment"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "return_statement":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _return_line(node), "pseudo-return"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "expression_statement":</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type in ("string", "concatenated_string"):</p>
+<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// skip docstrings</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "pass_statement":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "pass", "pseudo-control"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "break_statement":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "break", "pseudo-control"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "continue_statement":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "continue", "pseudo-control"))</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set raw to _text(node).strip()</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if raw:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, raw, "pseudo-raw"))</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// HTML writer</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function _escape():</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return text.replace("&amp;", "&amp;amp;").replace("&lt;", "&amp;lt;").replace("&gt;", "&amp;gt;")</p>
+<p class="pseudo-function">function _to_html():</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set parts to [
+        "&lt;!DOCTYPE html&gt;",
+        "&lt;html&gt;",
+        "&lt;head&gt;",
+        f"&lt;title&gt;Pseudocode: {source_name}&lt;/title&gt;",
+        '&lt;link rel="stylesheet" href="pseudo.css"&gt;',
+        "&lt;/head&gt;",
+        "&lt;body&gt;",
+    ]</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;for each depth, text, css_class in lines:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set indent to "&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;" * depth</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append(f'&lt;p class="{css_class}"&gt;{indent}{_escape(text)}&lt;/p&gt;')</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;add ["&lt;/body&gt;", "&lt;/html&gt;"] to parts</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return "\n".join(parts)</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment">// Public API</p>
+<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function">function convert_file():</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set src_path to Path(input_path).resolve()</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set src_bytes to src_path.read_bytes()</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set tree to _parse(src_bytes)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set lines to []</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;_convert(tree.root_node, 0, lines)</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;MIRRORS_DIR.mkdir(exist_ok=True)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set output_path to MIRRORS_DIR / (src_path.stem + ".html")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;output_path.write_text(_to_html(lines, src_path.name), encoding="utf-8")</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return output_path</p>
+<p class="pseudo-if">if __name__ == "__main__":</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;if len(sys.argv) &lt; 2:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Usage: python file_to_pseudo.py &lt;path/to/file.py&gt;")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sys.exit(1)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set result to convert_file(sys.argv[1])</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(f"Written to: {result}")</p>
+</body>
+</html>

@@ -200,20 +200,20 @@ def _convert(node, depth: int, out: list) -> None:
     elif t == "comment":
         # Strip leading '#' and whitespace
         text = _text(node)[1:].strip()
-        out.append((depth, f"// {text}"))
+        out.append((depth, f"// {text}", "pseudo-comment"))
 
     elif t in ("import_statement", "import_from_statement"):
         pass  # skipped per transformations table
 
     elif t == "function_definition":
-        out.append((depth, _function_header(node) + ":"))
+        out.append((depth, _function_header(node) + ":", "pseudo-function"))
         body = node.child_by_field_name("body")
         if body:
             _convert(body, depth + 1, out)
 
     elif t == "if_statement":
         cond = node.child_by_field_name("condition")
-        out.append((depth, f"if {_text(cond) if cond else '?'}:"))
+        out.append((depth, f"if {_text(cond) if cond else '?'}:", "pseudo-if"))
         consequence = node.child_by_field_name("consequence")
         if consequence:
             _convert(consequence, depth + 1, out)
@@ -221,37 +221,37 @@ def _convert(node, depth: int, out: list) -> None:
         for child in node.named_children:
             if child.type == "elif_clause":
                 cond2 = child.child_by_field_name("condition")
-                out.append((depth, f"else if {_text(cond2) if cond2 else '?'}:"))
+                out.append((depth, f"else if {_text(cond2) if cond2 else '?'}:", "pseudo-if"))
                 cons2 = child.child_by_field_name("consequence")
                 if cons2:
                     _convert(cons2, depth + 1, out)
             elif child.type == "else_clause":
-                out.append((depth, "otherwise:"))
+                out.append((depth, "otherwise:", "pseudo-if"))
                 body = child.child_by_field_name("body")
                 if body:
                     _convert(body, depth + 1, out)
 
     elif t == "for_statement":
-        out.append((depth, _for_header(node) + ":"))
+        out.append((depth, _for_header(node) + ":", "pseudo-for"))
         body = node.child_by_field_name("body")
         if body:
             _convert(body, depth + 1, out)
 
     elif t == "while_statement":
         cond = node.child_by_field_name("condition")
-        out.append((depth, f"while {_text(cond) if cond else '?'}:"))
+        out.append((depth, f"while {_text(cond) if cond else '?'}:", "pseudo-while"))
         body = node.child_by_field_name("body")
         if body:
             _convert(body, depth + 1, out)
 
     elif t == "assignment":
-        out.append((depth, _assignment_line(node)))
+        out.append((depth, _assignment_line(node), "pseudo-assignment"))
 
     elif t == "augmented_assignment":
-        out.append((depth, _augmented_assignment_line(node)))
+        out.append((depth, _augmented_assignment_line(node), "pseudo-assignment"))
 
     elif t == "return_statement":
-        out.append((depth, _return_line(node)))
+        out.append((depth, _return_line(node), "pseudo-return"))
 
     elif t == "expression_statement":
         for child in node.named_children:
@@ -261,19 +261,19 @@ def _convert(node, depth: int, out: list) -> None:
                 _convert(child, depth, out)
 
     elif t == "pass_statement":
-        out.append((depth, "pass"))
+        out.append((depth, "pass", "pseudo-control"))
 
     elif t == "break_statement":
-        out.append((depth, "break"))
+        out.append((depth, "break", "pseudo-control"))
 
     elif t == "continue_statement":
-        out.append((depth, "continue"))
+        out.append((depth, "continue", "pseudo-control"))
 
     else:
         # Fallback: output raw source text for unrecognized node types
         raw = _text(node).strip()
         if raw:
-            out.append((depth, raw))
+            out.append((depth, raw, "pseudo-raw"))
 
 
 # ---------------------------------------------------------------------------
@@ -286,18 +286,19 @@ def _escape(text: str) -> str:
 
 
 def _to_html(lines: list, source_name: str) -> str:
-    """Convert (depth, text) pairs to a minimal HTML document."""
+    """Convert (depth, text, css_class) tuples to a minimal HTML document."""
     parts = [
         "<!DOCTYPE html>",
         "<html>",
         "<head>",
         f"<title>Pseudocode: {source_name}</title>",
+        '<link rel="stylesheet" href="pseudo.css">',
         "</head>",
         "<body>",
     ]
-    for depth, text in lines:
+    for depth, text, css_class in lines:
         indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * depth
-        parts.append(f"<p>{indent}{_escape(text)}</p>")
+        parts.append(f'<p class="{css_class}">{indent}{_escape(text)}</p>')
     parts += ["</body>", "</html>"]
     return "\n".join(parts)
 

@@ -1,0 +1,66 @@
+/* pseudo.css — styling for pseudocode HTML output */
+
+body {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 2em 3em;
+    margin: 0;
+}
+
+p {
+    margin: 1px 0;
+    white-space: pre;
+}
+
+/* function_definition — bold purple */
+.pseudo-function {
+    font-weight: bold;
+    color: #cba6f7;
+}
+
+/* return_statement — bold pink/red */
+.pseudo-return {
+    font-weight: bold;
+    color: #f38ba8;
+}
+
+/* if_statement, elif_clause, else_clause — italic cyan */
+.pseudo-if {
+    font-style: italic;
+    color: #89dceb;
+}
+
+/* for_statement — blue */
+.pseudo-for {
+    color: #89b4fa;
+}
+
+/* while_statement — sky blue */
+.pseudo-while {
+    color: #74c7ec;
+}
+
+/* assignment, augmented_assignment — green */
+.pseudo-assignment {
+    color: #a6e3a1;
+}
+
+/* comment — muted gray, italic */
+.pseudo-comment {
+    color: #585b70;
+    font-style: italic;
+}
+
+/* break, continue, pass — orange */
+.pseudo-control {
+    color: #fab387;
+}
+
+/* fallback / unrecognized nodes — dim yellow */
+.pseudo-raw {
+    color: #f9e2af;
+    opacity: 0.75;
+}
