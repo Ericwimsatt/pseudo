@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pseudocode: run_simulation.py</title>
+</head>
+<body>
+<p>function calc_blind_payout(player_rank):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if player_rank &lt;= 1:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 500</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 10:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 50</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 166:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 10</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 322:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 3</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 1599:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1.5</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 1609:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0</p>
+<p>function play_game(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set deck to Deck()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set player_hand to sorted(deck.draw(2))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set board to []</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set dead_cards to deck.pull_many(dead_card_maker(player_hand))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set dealer_hand to deck.draw(2)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if pre_flop_strategy(player_hand, dead_cards):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 4</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(3) to board</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0 and  post_flop_strategy(player_hand, board, dead_cards):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 2</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(2) to board</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if river_strategy(player_hand, board, dead_cards):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 1</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Evaling hand")</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(player_hand)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(board)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(dealer_hand)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// evaluation.hand_summary(board, [player_hand, dealer_hand])</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set dealer_rank to evaluation.evaluate(dealer_hand, board)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set player_rank to evaluation.evaluate(player_hand, board)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set ante_bet to 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// Check if dealer qualifies</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// 6185 is max rank for a pair</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if dealer_rank &lt;= 6185:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set ante_bet to 1</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set result to 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// fold</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to -2</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank == dealer_rank:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt; dealer_rank:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set blind_payout to calc_blind_payout(player_rank)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to play_bet + blind_payout + ante_bet</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to - play_bet - ante_bet - 1</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return result, {
+        "player_wins": 1 if result &gt; 0 else 0,
+        "dealer_wins": 1 if result &lt; 0 else 0,
+        "pushes": 1 if result == 0 else 0,
+        "dealer_qualifies": 1 if ante_bet else 0,
+        "play_bet_total": play_bet,
+        "player_win_play_bet_total": play_bet if result &gt; 0 else 0,
+        "dealer_win_play_bet_total": play_bet if result &lt; 0 else 0,
+        "push_play_bet_total": play_bet if result == 0 else 0,
+        "blind_payout_total": blind_payout if result &gt; 0 else 0,
+        "folds": 1 if play_bet == 0 else 0,
+        "bad_folds": 1 if play_bet == 0 and player_rank &lt; dealer_rank else 0
+    }</p>
+<p>function run_simulation(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker, hands):</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set total to 0</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set play_stats to {
+        "player_wins": 0,
+        "dealer_wins": 0,
+        "pushes": 0,
+        "dealer_qualifies": 0,
+        "play_bet_total": 0,
+        "player_win_play_bet_total": 0,
+        "dealer_win_play_bet_total": 0,
+        "push_play_bet_total": 0,
+        "blind_payout_total": 0,
+        "folds": 0,
+        "bad_folds": 0
+    }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;do hands times:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result, round_data to play_game(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add result to total</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add round_data.get(key, 0) to play_stats[key]</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;print("Average result: {}".format(total / hands))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("TOTAL {} : {}".format(key, play_stats[key]))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;print("________")</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("AVERAGE {} : {}".format(key, play_stats[key] / hands))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;return total / hands</p>
+<p>if __name__ == "__main__":</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set always_bet_no_deads to run_simulation(lambda hand, dead_cards: True, base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;set base_no_deads to run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// base = run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'],</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// change = run_simulation(pass_if_dead_pair, base_strategies['post_flop'], base_strategies['river'],</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// change_ace = run_simulation(pass_if_dead_pair_unless_ace_queen, base_strategies['post_flop'], base_strategies['river'],</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands =100000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// change_pair = run_simulation(pass_if_dead_pair_unless_pocket_pair, base_strategies['post_flop'], base_strategies['river'],</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Base no deads: {}".format(base_no_deads))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Base-always dead card pair: {}".format(base))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Change strat -always dead card pair: {}".format(change))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless ace queen -always dead card pair:: {}".format(change_ace))</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless pocket pair -always dead card pair:: {}".format(change_pair))</p>
+</body>
+</html>
