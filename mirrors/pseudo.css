@@ -37,8 +37,6 @@ p {
     font-style: italic;
 }
 
-/* assignment, augmented_assignment — default style */
-
 /* comment — muted gray, italic */
 .pseudo-comment {
     color: #8a8a8a;
@@ -50,4 +48,130 @@ p {
     color: #eaaf8a;
 }
 
+/* Interactive elements */
+.fn-name,
+.var-name {
+    cursor: pointer;
+    border-bottom: 1px dotted rgba(255,255,255,0.15);
+    transition: border-color 0.15s, background 0.15s;
+}
+.fn-name:hover,
+.var-name:hover {
+    border-bottom-color: #89b4fa;
+    background: rgba(137, 180, 250, 0.08);
+}
+
 /* fallback / unrecognized nodes — default style */
+
+/* ================================================================
+   Modal overlay
+   ================================================================ */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.modal-box {
+    position: absolute;
+    background: #0f1a14;
+    border: 1px solid #2a3a30;
+    border-radius: 8px;
+    padding: 1em 1.2em;
+    min-width: 360px;
+    max-width: 600px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    color: #cdd6f4;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.modal-box .modal-word {
+    color: #89b4fa;
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 0.6em;
+    display: block;
+    border-bottom: 1px solid #2a3a30;
+    padding-bottom: 0.4em;
+}
+
+.modal-box .ref-entry {
+    margin: 2px 0;
+    padding: 4px 6px;
+    border-radius: 4px;
+    word-break: break-all;
+}
+.modal-box .ref-entry:hover {
+    background: rgba(255,255,255,0.04);
+}
+.modal-box .ref-entry .ref-line {
+    color: #a6adc8;
+    font-size: 11px;
+}
+.modal-box .ref-entry .ref-context {
+    color: #cdd6f4;
+    margin-left: 1em;
+}
+
+.modal-box .trace-entry {
+    border: 1px solid #2a3a30;
+    border-radius: 6px;
+    padding: 0.6em 0.8em;
+    margin: 0.5em 0;
+    background: #0c1510;
+}
+.modal-box .trace-entry .trace-step {
+    padding: 2px 0;
+    border-left: 2px solid #2a3a30;
+    padding-left: 0.6em;
+    margin: 3px 0;
+}
+.modal-box .trace-entry .trace-step .step-var {
+    color: #a6e3a1;
+}
+.modal-box .trace-entry .trace-step .step-context {
+    color: #cdd6f4;
+}
+.modal-box .trace-entry .trace-step .step-loc {
+    color: #585b70;
+    font-size: 11px;
+}
+
+.modal-box .no-results {
+    color: #585b70;
+    font-style: italic;
+}
+
+.modal-close {
+    margin-top: 0.8em;
+    background: #2a3a30;
+    border: none;
+    color: #cdd6f4;
+    padding: 4px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.modal-close:hover {
+    background: #3a4a40;
+}
+
+.modal-loading {
+    color: #585b70;
+    font-style: italic;
+    text-align: center;
+    padding: 1em;
+}

@@ -3,235 +3,458 @@
 <head>
 <title>Pseudocode: file_to_pseudo.py</title>
 <link rel="stylesheet" href="pseudo.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
-<p class="pseudo-assignment">set PY_LANGUAGE to Language(tspython.language())</p>
-<p class="pseudo-assignment">set MIRRORS_DIR to Path(__file__).parent / "mirrors"</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// Parser</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-function"><span class="kw">function</span> _make_parser():</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return Parser(PY_LANGUAGE)</p>
-<p class="pseudo-function"><span class="kw">function</span> _parse():</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return _make_parser().parse(src_bytes)</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// Node helpers</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-function"><span class="kw">function</span> _text(node):</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return node.text.decode("utf-8", errors="replace")</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// Statement-level transformers</p>
-<p class="pseudo-comment">// Each returns a plain-text pseudocode string (no HTML).</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-function"><span class="kw">function</span> _for_header(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// for _ in range(N)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> left_text == "_" and right and right.type == "call":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set fn to right.child_by_field_name("function")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set args to right.child_by_field_name("arguments")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> fn and _text(fn) == "range" and args:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set named to args.named_children</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> len(named) == 1:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"do {_text(named[0])} times"</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// for x in range(N)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> right and right.type == "call":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set fn to right.child_by_field_name("function")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set args to right.child_by_field_name("arguments")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> fn and _text(fn) == "range" and args:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set named to args.named_children</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> len(named) == 1:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set n to _text(named[0])</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"for {left_text} from 0 to {n} - 1"</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// default</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"for each {left_text} in {right_text}"</p>
-<p class="pseudo-function"><span class="kw">function</span> _function_header(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set name to node.child_by_field_name("name")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set params to node.child_by_field_name("parameters")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set name_text to _text(name) if name else "?"</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set param_parts to []</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> params:</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in params.named_children:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set t to child.type</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> t == "identifier":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(_text(child))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t in ("default_parameter", "typed_parameter", "typed_default_parameter"):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set n to child.child_by_field_name("name")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> n:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(_text(n))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "list_splat_pattern":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set inner to child.named_children[0] if child.named_children else None</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("*" + (_text(inner) if inner else "args"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "dictionary_splat_pattern":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set inner to child.named_children[0] if child.named_children else None</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("**" + (_text(inner) if inner else "kwargs"))</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"function {name_text}({', '.join(param_parts)})"</p>
-<p class="pseudo-function"><span class="kw">function</span> _assignment_line(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f"set {left_text} to {right_text}"</p>
-<p class="pseudo-function"><span class="kw">function</span> _augmented_assignment_line(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left to node.child_by_field_name("left")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right to node.child_by_field_name("right")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set op_node to node.child_by_field_name("operator")</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set left_text to _text(left) if left else "?"</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set right_text to _text(right) if right else "?"</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Fallback: search anonymous children for the operator token</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> op_node is None:</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in node.children:</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> child.type in ("+=", "-=", "*=", "/=", "//=", "%=", "**=", "&amp;=", "|=", "^="):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set op_node to child</p>
-<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set op to _text(op_node) if op_node else "?"</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set ops to {
-        "+=": f"add {right_text} to {left_text}",
-        "-=": f"subtract {right_text} from {left_text}",
-        "*=": f"multiply {left_text} by {right_text}",
-        "/=": f"divide {left_text} by {right_text}",
-        "//=": f"floor-divide {left_text} by {right_text}",
-        "%=": f"{left_text} mod= {right_text}",
-        "**=": f"raise {left_text} to the power of {right_text}",
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">set <span class="var-name" data-var="PY_LANGUAGE" data-line="28">PY_LANGUAGE</span> to Language(tspython.language())</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">set <span class="var-name" data-var="MIRRORS_DIR" data-line="29">MIRRORS_DIR</span> to Path(__file__).parent / "mirrors"</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_make_parser" data-line="32">_make_parser</span>():</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return Parser(PY_LANGUAGE)</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_parse" data-line="36">_parse</span>():</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return _make_parser().parse(src_bytes)</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_text" data-line="40">_text</span>(node):</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return node.text.decode("utf-8", errors="replace")</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_node_line" data-line="44">_node_line</span>(node):</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return node.start_point[0] + 1</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// Line-level transformers — each returns a list of (text_or_html, is_html)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_for_header" data-line="52">_for_header</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left" data-line="53">left</span> to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right" data-line="54">right</span> to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left_text" data-line="55">left_text</span> to _text(left) if left else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right_text" data-line="56">right_text</span> to _text(right) if right else "?"</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if left_text == "_" and right and right.type == "call":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="fn" data-line="59">fn</span> to right.child_by_field_name("function")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="args" data-line="60">args</span> to right.child_by_field_name("arguments")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if fn and _text(fn) == "range" and args:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="named" data-line="62">named</span> to args.named_children</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if len(named) == 1:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return [("do", False), (f" {_text(named[0])} times", False)]</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if right and right.type == "call":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="fn" data-line="67">fn</span> to right.child_by_field_name("function")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="args" data-line="68">args</span> to right.child_by_field_name("arguments")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if fn and _text(fn) == "range" and args:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="named" data-line="70">named</span> to args.named_children</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if len(named) == 1:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="n" data-line="72">n</span> to _text(named[0])</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return [("for", False), (f" {left_text} from 0 to {n} - 1", False)]</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return [("for each", False), (f" {left_text} in {right_text}", False)]</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_function_header" data-line="78">_function_header</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="name" data-line="79">name</span> to node.child_by_field_name("name")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="params" data-line="80">params</span> to node.child_by_field_name("parameters")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="name_text" data-line="81">name_text</span> to _text(name) if name else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="name_line" data-line="82">name_line</span> to _node_line(name) if name else 0</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="param_parts" data-line="84">param_parts</span> to []</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="param_names" data-line="85">param_names</span> to []</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if params:</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in params.named_children:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="t" data-line="88">t</span> to child.type</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if t == "identifier":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="pn" data-line="90">pn</span> to _text(child)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(pn)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_names.append(pn)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t in ("default_parameter", "typed_parameter", "typed_default_parameter"):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="n" data-line="94">n</span> to child.child_by_field_name("name")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if n:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="pn" data-line="96">pn</span> to _text(n)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append(pn)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_names.append(pn)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t == "list_splat_pattern":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="inner" data-line="100">inner</span> to child.named_children[0] if child.named_children else None</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("*" + (_text(inner) if inner else "args"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if t == "dictionary_splat_pattern":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="inner" data-line="103">inner</span> to child.named_children[0] if child.named_children else None</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param_parts.append("**" + (_text(inner) if inner else "kwargs"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="parts" data-line="106">parts</span> to [('&lt;span class="kw"&gt;FUNCTION&lt;/span&gt;', True)]</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="attrs" data-line="107">attrs</span> to f' class="fn-name" data-fn="{name_text}" data-line="{name_line}"'</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;parts.append((f'&lt;span{attrs}&gt;{name_text}&lt;/span&gt;', True))</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;parts.append((f'({", ".join(param_parts)})', False))</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return parts</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_assignment_line" data-line="113">_assignment_line</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left" data-line="114">left</span> to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right" data-line="115">right</span> to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="line" data-line="116">line</span> to _node_line(node)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left_text" data-line="118">left_text</span> to _text(left) if left else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right_text" data-line="119">right_text</span> to _text(right) if right else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="parts" data-line="121">parts</span> to [("set ", False)]</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if left and left.type == "identifier":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="vname" data-line="123">vname</span> to _text(left)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="line2" data-line="124">line2</span> to _node_line(left)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="attrs" data-line="125">attrs</span> to f' class="var-name" data-var="{vname}" data-line="{line2}"'</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append((f'&lt;span{attrs}&gt;{left_text}&lt;/span&gt;', True))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append((left_text, False))</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;parts.append((f" to {right_text}", False))</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return parts</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_var_span" data-line="133">_var_span</span>(left_node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="line2" data-line="134">line2</span> to _node_line(left_node)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="attrs" data-line="135">attrs</span> to f' class="var-name" data-var="{vname}" data-line="{line2}"'</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return (f'&lt;span{attrs}&gt;{vname}&lt;/span&gt;', True)</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_augmented_assignment_line" data-line="139">_augmented_assignment_line</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left" data-line="140">left</span> to node.child_by_field_name("left")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right" data-line="141">right</span> to node.child_by_field_name("right")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="op_node" data-line="142">op_node</span> to node.child_by_field_name("operator")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left_text" data-line="144">left_text</span> to _text(left) if left else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right_text" data-line="145">right_text</span> to _text(right) if right else "?"</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if op_node is None:</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.children:</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type in ("+=", "-=", "*=", "/=", "//=", "%=", "**=", "&amp;=", "|=", "^="):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="op_node" data-line="150">op_node</span> to child</p>
+<p class="pseudo-control" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="op" data-line="153">op</span> to _text(op_node) if op_node else "?"</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="left_seg" data-line="155">left_seg</span> to _var_span(left, left_text) if (left and left.type == "identifier") else (left_text, False)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="right_seg" data-line="156">right_seg</span> to _var_span(right, right_text) if (right and right.type == "identifier") else (right_text, False)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="ops" data-line="158">ops</span> to {
+        "+=": lambda: [("add ", False), right_seg, (" to ", False), left_seg],
+        "-=": lambda: [("subtract ", False), right_seg, (" from ", False), left_seg],
+        "*=": lambda: [("multiply ", False), left_seg, (" by ", False), right_seg],
+        "/=": lambda: [("divide ", False), left_seg, (" by ", False), right_seg],
+        "//=": lambda: [("floor-divide ", False), left_seg, (" by ", False), right_seg],
+        "%=": lambda: [left_seg, (" mod= ", False), right_seg],
+        "**=": lambda: [("raise ", False), left_seg, (" to the power of ", False), right_seg],
     }</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return ops.get(op, f"{left_text} {op} {right_text}")</p>
-<p class="pseudo-function"><span class="kw">function</span> _return_line(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set named to node.named_children</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> named:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f"return {_text(named[0])}"</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return "return"</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// Main recursive converter</p>
-<p class="pseudo-comment">// Appends (depth: int, text: str) tuples to `out`.</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-function"><span class="kw">function</span> _convert(node):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set t to node.type</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> t == "module":</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in node.named_children:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "block":</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in node.named_children:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "comment":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set text to _text(node)[1:].strip()</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"// {text}", "pseudo-comment"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t in ("import_statement", "import_from_statement"):</p>
-<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// skipped per transformations table</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "function_definition":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _function_header(node) + ":", "pseudo-function"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> body:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "if_statement":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond to node.child_by_field_name("condition")</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"if {_text(cond) if cond else '?'}:", "pseudo-if"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set consequence to node.child_by_field_name("consequence")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> consequence:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(consequence, depth + 1, out)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// elif and else are named_children of the if_statement</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in node.named_children:</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> child.type == "elif_clause":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond2 to child.child_by_field_name("condition")</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"else if {_text(cond2) if cond2 else '?'}:", "pseudo-if"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cons2 to child.child_by_field_name("consequence")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> cons2:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(cons2, depth + 1, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> child.type == "else_clause":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "otherwise:", "pseudo-if"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to child.child_by_field_name("body")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> body:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "for_statement":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _for_header(node) + ":", "pseudo-for"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> body:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "while_statement":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set cond to node.child_by_field_name("condition")</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, f"while {_text(cond) if cond else '?'}:", "pseudo-while"))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set body to node.child_by_field_name("body")</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> body:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "assignment":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _assignment_line(node), "pseudo-assignment"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "augmented_assignment":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _augmented_assignment_line(node), "pseudo-assignment"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "return_statement":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _return_line(node), "pseudo-return"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "expression_statement":</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each child in node.named_children:</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> child.type in ("string", "concatenated_string"):</p>
-<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// skip docstrings</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">otherwise</span>:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "pass_statement":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "pass", "pseudo-control"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "break_statement":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "break", "pseudo-control"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> t == "continue_statement":</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, "continue", "pseudo-control"))</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">otherwise</span>:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set raw to _text(node).strip()</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> raw:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, raw, "pseudo-raw"))</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// HTML writer</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-assignment">set _KW_RE to {
-    "pseudo-if":       re.compile(r"^(if|else if|otherwise)\b"),
-    "pseudo-for":      re.compile(r"^(for|do)\b"),
-    "pseudo-while":    re.compile(r"^(while)\b"),
-    "pseudo-function": re.compile(r"^(function)\b"),
-}</p>
-<p class="pseudo-function"><span class="kw">function</span> _wrap_kw():</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set pat to _KW_RE.get(css_class)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> pat is None:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return text</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set m to pat.match(text)</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> not m:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return text</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set kw to m.group(1)</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return f'&lt;span class="kw"&gt;{kw}&lt;/span&gt;{text[len(kw):]}'</p>
-<p class="pseudo-function"><span class="kw">function</span> _escape():</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return text.replace("&amp;", "&amp;amp;").replace("&lt;", "&amp;lt;").replace("&gt;", "&amp;gt;")</p>
-<p class="pseudo-function"><span class="kw">function</span> _to_html():</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set parts to [
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if op in ops:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ops[op]()</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return [(f"{left_text} {op} {right_text}", False)]</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_return_line" data-line="173">_return_line</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="named" data-line="174">named</span> to node.named_children</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if named:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return [(f"return {_text(named[0])}", False)]</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return [("return", False)]</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// Main recursive converter — appends (depth, parts, css_class) tuples</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// parts is a list of (text_or_html, is_html_bool)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_convert" data-line="185">_convert</span>(node):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="t" data-line="186">t</span> to node.type</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if t == "module":</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "block":</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "comment":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="text" data-line="197">text</span> to _text(node)[1:].strip()</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [(f"// {text}", False)], "pseudo-comment"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t in ("import_statement", "import_from_statement"):</p>
+<p class="pseudo-control" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "function_definition":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="parts" data-line="204">parts</span> to _function_header(node)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append((":", False))</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, parts, "pseudo-function"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="body" data-line="207">body</span> to node.child_by_field_name("body")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "if_statement":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="cond" data-line="212">cond</span> to node.child_by_field_name("condition")</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [(f"if {_text(cond) if cond else '?'}:", False)], "pseudo-if"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="consequence" data-line="214">consequence</span> to node.child_by_field_name("consequence")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if consequence:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(consequence, depth + 1, out)</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type == "elif_clause":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="cond2" data-line="219">cond2</span> to child.child_by_field_name("condition")</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [(f"else if {_text(cond2) if cond2 else '?'}:", False)], "pseudo-if"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="cons2" data-line="221">cons2</span> to child.child_by_field_name("consequence")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if cons2:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(cons2, depth + 1, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if child.type == "else_clause":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [("otherwise:", False)], "pseudo-if"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="body" data-line="226">body</span> to child.child_by_field_name("body")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "for_statement":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="parts" data-line="231">parts</span> to _for_header(node)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append((":", False))</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, parts, "pseudo-for"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="body" data-line="234">body</span> to node.child_by_field_name("body")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "while_statement":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="cond" data-line="239">cond</span> to node.child_by_field_name("condition")</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [(f"while {_text(cond) if cond else '?'}:", False)], "pseudo-while"))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="body" data-line="241">body</span> to node.child_by_field_name("body")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if body:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(body, depth + 1, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "assignment":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _assignment_line(node), "pseudo-assignment"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "augmented_assignment":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _augmented_assignment_line(node), "pseudo-assignment"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "return_statement":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, _return_line(node), "pseudo-return"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "expression_statement":</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each child in node.named_children:</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if child.type in ("string", "concatenated_string"):</p>
+<p class="pseudo-control" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pass</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert(child, depth, out)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "pass_statement":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [("pass", False)], "pseudo-control"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "break_statement":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [("break", False)], "pseudo-control"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;else if t == "continue_statement":</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [("continue", False)], "pseudo-control"))</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="raw" data-line="271">raw</span> to _text(node).strip()</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if raw:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out.append((depth, [(raw, False)], "pseudo-raw"))</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// HTML writer</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">// ---------------------------------------------------------------------------</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_escape" data-line="280">_escape</span>():</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return text.replace("&amp;", "&amp;amp;").replace("&lt;", "&amp;lt;").replace("&gt;", "&amp;gt;")</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">set <span class="var-name" data-var="_HTMX_JS" data-line="284">_HTMX_JS</span> to """&lt;script src="https://unpkg.com/htmx.org@2.0.4"&gt;&lt;/script&gt;"""</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">set <span class="var-name" data-var="_MODAL_HTML" data-line="286">_MODAL_HTML</span> to """
+&lt;div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)"&gt;
+  &lt;div id="modal-box" class="modal-box" onclick="event.stopPropagation()"&gt;
+    &lt;div id="modal-content"&gt;&lt;/div&gt;
+    &lt;button class="modal-close" onclick="closeModal()"&gt;close&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;"""</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">set <span class="var-name" data-var="_INTERACTIVE_JS" data-line="294">_INTERACTIVE_JS</span> to """
+&lt;script&gt;
+var modalOverlay = document.getElementById('modal-overlay');
+var modalContent = document.getElementById('modal-content');
+
+function getWordAtPosition(range) {
+  if (!range) return null;
+  var node = range.startContainer;
+  if (node.nodeType !== 3) return null;
+  var text = node.textContent;
+  var pos = range.startOffset;
+  if (pos === undefined || text.length === 0) return null;
+  var start = pos;
+  while (start &gt; 0 &amp;&amp; /\\w/.test(text[start - 1])) start--;
+  var end = pos;
+  while (end &lt; text.length &amp;&amp; /\\w/.test(text[end])) end++;
+  if (start === end) return null;
+  var word = text.slice(start, end);
+  return {word: word, node: node, offset: pos};
+}
+
+function showModal(x, y) {
+  var box = document.getElementById('modal-box');
+  modalOverlay.style.display = 'flex';
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var bx = Math.min(x, vw - 420);
+  var by = Math.min(y, vh - 300);
+  box.style.left = Math.max(10, bx) + 'px';
+  box.style.top = Math.max(10, by) + 'px';
+}
+
+window.closeModal = function(e) {
+  if (e &amp;&amp; e.target !== modalOverlay &amp;&amp; e.target.className !== 'modal-close') return;
+  modalOverlay.style.display = 'none';
+};
+
+document.addEventListener('htmx:beforeRequest', function(evt) {
+  modalContent.innerHTML = '&lt;div class="modal-loading"&gt;searching...&lt;/div&gt;';
+});
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+  var wordEl = document.getElementById('modal-word-label');
+  if (wordEl) {
+    document.getElementById('modal-box').querySelector('.modal-word').textContent = wordEl.textContent;
+  }
+});
+
+document.addEventListener('mousedown', function(e) {
+  var p = e.target.closest('p');
+  if (!p) return;
+  if (e.target.closest('.modal-overlay, .modal-box, .modal-close')) return;
+
+  var isFnDef = e.target.classList.contains('fn-name');
+  var isVarName = e.target.classList.contains('var-name');
+  var word = null;
+
+  if (isFnDef) {
+    word = e.target.dataset.fn;
+  } else if (isVarName) {
+    word = e.target.dataset.var;
+  } else {
+    var range;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    }
+    var info = getWordAtPosition(range);
+    if (!info) return;
+    word = info.word;
+    if (/^(if|else|otherwise|for|do|while|return|function|set|to|add|subtract|multiply|divide|pass|break|continue|from|in|each|times|not|and|or|True|False|None|mod)$/i.test(word)) return;
+    if (/^\\d+(\\.\\d+)?$/.test(word)) return;
+    if (/^['"]/.test(word)) return;
+  }
+  if (!word) return;
+
+  var sourceFile = p.dataset.sourceFile || '';
+  var sourceLine = p.dataset.sourceLine || '1';
+
+  if (isFnDef || p.classList.contains('pseudo-function')) {
+    var fnName = isFnDef ? word : (p.querySelector('.fn-name') || {}).dataset?.fn;
+    if (!fnName) return;
+    htmx.ajax('GET', '/api/function-refs?fn=' + encodeURIComponent(fnName) + '&amp;file=' + encodeURIComponent(sourceFile), {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  } else {
+    htmx.ajax('GET', '/api/var-trace?var=' + encodeURIComponent(word) + '&amp;file=' + encodeURIComponent(sourceFile) + '&amp;line=' + sourceLine, {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  }
+});
+&lt;/script&gt;"""</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="_to_html" data-line="391">_to_html</span>(css_rel_path):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="parts" data-line="392">parts</span> to [
         "&lt;!DOCTYPE html&gt;",
         "&lt;html&gt;",
         "&lt;head&gt;",
         f"&lt;title&gt;Pseudocode: {source_name}&lt;/title&gt;",
-        '&lt;link rel="stylesheet" href="pseudo.css"&gt;',
+        f'&lt;link rel="stylesheet" href="{_escape(css_rel_path)}"&gt;',
+        _HTMX_JS,
         "&lt;/head&gt;",
         "&lt;body&gt;",
     ]</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each depth, text, css_class in lines:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set indent to "&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;" * depth</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set escaped to _wrap_kw(_escape(text), css_class)</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append(f'&lt;p class="{css_class}"&gt;{indent}{escaped}&lt;/p&gt;')</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;add ["&lt;/body&gt;", "&lt;/html&gt;"] to parts</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return "\n".join(parts)</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-comment">// Public API</p>
-<p class="pseudo-comment">// ---------------------------------------------------------------------------</p>
-<p class="pseudo-function"><span class="kw">function</span> convert_file():</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set src_path to Path(input_path).resolve()</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set src_bytes to src_path.read_bytes()</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set tree to _parse(src_bytes)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set lines to []</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;_convert(tree.root_node, 0, lines)</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;MIRRORS_DIR.mkdir(exist_ok=True)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set output_path to MIRRORS_DIR / (src_path.stem + ".html")</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;output_path.write_text(_to_html(lines, src_path.name), encoding="utf-8")</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return output_path</p>
-<p class="pseudo-if"><span class="kw">if</span> __name__ == "__main__":</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> len(sys.argv) &lt; 2:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Usage: python file_to_pseudo.py &lt;path/to/file.py&gt;")</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sys.exit(1)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set result to convert_file(sys.argv[1])</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(f"Written to: {result}")</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;for each depth, segs, css_class in lines:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="indent" data-line="403">indent</span> to "&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;" * depth</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="inner" data-line="404">inner</span> to ""</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each text_or_html, is_html in segs:</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if is_html:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add <span class="var-name" data-var="text_or_html" data-line="407">text_or_html</span> to <span class="var-name" data-var="inner" data-line="407">inner</span></p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add _escape(text_or_html) to <span class="var-name" data-var="inner" data-line="409">inner</span></p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="attrs" data-line="410">attrs</span> to f' class="{css_class}" data-source-file="{_escape(file_path)}"'</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts.append(f"&lt;p{attrs}&gt;{indent}{inner}&lt;/p&gt;")</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;parts.append(_MODAL_HTML)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;parts.append(_INTERACTIVE_JS)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;add ["&lt;/body&gt;", "&lt;/html&gt;"] to <span class="var-name" data-var="parts" data-line="414">parts</span></p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return "\n".join(parts)</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="convert_file" data-line="418">convert_file</span>(output_path):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="src_path" data-line="419">src_path</span> to Path(input_path).resolve()</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="src_bytes" data-line="420">src_bytes</span> to src_path.read_bytes()</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="tree" data-line="422">tree</span> to _parse(src_bytes)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="lines" data-line="423">lines</span> to []</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;_convert(tree.root_node, 0, lines)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;MIRRORS_DIR.mkdir(exist_ok=True)</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if output_path is None:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="output_path" data-line="428">output_path</span> to MIRRORS_DIR / (src_path.stem + ".html")</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="output_path" data-line="430">output_path</span> to Path(output_path)</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;output_path.write_text(
+        _to_html(lines, src_path.name, str(src_path)),
+        encoding="utf-8",
+    )</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;return output_path</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">if __name__ == "__main__":</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;if len(sys.argv) &lt; 2:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("Usage: python file_to_pseudo.py &lt;path/to/file.py&gt;")</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sys.exit(1)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="443">result</span> to convert_file(sys.argv[1])</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/file_to_pseudo.py">&nbsp;&nbsp;&nbsp;&nbsp;print(f"Written to: {result}")</p>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div id="modal-box" class="modal-box" onclick="event.stopPropagation()">
+    <div id="modal-content"></div>
+    <button class="modal-close" onclick="closeModal()">close</button>
+  </div>
+</div>
+
+<script>
+var modalOverlay = document.getElementById('modal-overlay');
+var modalContent = document.getElementById('modal-content');
+
+function getWordAtPosition(range) {
+  if (!range) return null;
+  var node = range.startContainer;
+  if (node.nodeType !== 3) return null;
+  var text = node.textContent;
+  var pos = range.startOffset;
+  if (pos === undefined || text.length === 0) return null;
+  var start = pos;
+  while (start > 0 && /\w/.test(text[start - 1])) start--;
+  var end = pos;
+  while (end < text.length && /\w/.test(text[end])) end++;
+  if (start === end) return null;
+  var word = text.slice(start, end);
+  return {word: word, node: node, offset: pos};
+}
+
+function showModal(x, y) {
+  var box = document.getElementById('modal-box');
+  modalOverlay.style.display = 'flex';
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var bx = Math.min(x, vw - 420);
+  var by = Math.min(y, vh - 300);
+  box.style.left = Math.max(10, bx) + 'px';
+  box.style.top = Math.max(10, by) + 'px';
+}
+
+window.closeModal = function(e) {
+  if (e && e.target !== modalOverlay && e.target.className !== 'modal-close') return;
+  modalOverlay.style.display = 'none';
+};
+
+document.addEventListener('htmx:beforeRequest', function(evt) {
+  modalContent.innerHTML = '<div class="modal-loading">searching...</div>';
+});
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+  var wordEl = document.getElementById('modal-word-label');
+  if (wordEl) {
+    document.getElementById('modal-box').querySelector('.modal-word').textContent = wordEl.textContent;
+  }
+});
+
+document.addEventListener('mousedown', function(e) {
+  var p = e.target.closest('p');
+  if (!p) return;
+  if (e.target.closest('.modal-overlay, .modal-box, .modal-close')) return;
+
+  var isFnDef = e.target.classList.contains('fn-name');
+  var isVarName = e.target.classList.contains('var-name');
+  var word = null;
+
+  if (isFnDef) {
+    word = e.target.dataset.fn;
+  } else if (isVarName) {
+    word = e.target.dataset.var;
+  } else {
+    var range;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    }
+    var info = getWordAtPosition(range);
+    if (!info) return;
+    word = info.word;
+    if (/^(if|else|otherwise|for|do|while|return|function|set|to|add|subtract|multiply|divide|pass|break|continue|from|in|each|times|not|and|or|True|False|None|mod)$/i.test(word)) return;
+    if (/^\d+(\.\d+)?$/.test(word)) return;
+    if (/^['"]/.test(word)) return;
+  }
+  if (!word) return;
+
+  var sourceFile = p.dataset.sourceFile || '';
+  var sourceLine = p.dataset.sourceLine || '1';
+
+  if (isFnDef || p.classList.contains('pseudo-function')) {
+    var fnName = isFnDef ? word : (p.querySelector('.fn-name') || {}).dataset?.fn;
+    if (!fnName) return;
+    htmx.ajax('GET', '/api/function-refs?fn=' + encodeURIComponent(fnName) + '&file=' + encodeURIComponent(sourceFile), {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  } else {
+    htmx.ajax('GET', '/api/var-trace?var=' + encodeURIComponent(word) + '&file=' + encodeURIComponent(sourceFile) + '&line=' + sourceLine, {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  }
+});
+</script>
 </body>
 </html>
