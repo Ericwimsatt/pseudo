@@ -73,7 +73,7 @@ def _for_header(node) -> str:
         if fn and _text(fn) == "range" and args:
             named = args.named_children
             if len(named) == 1:
-                return f"do {_text(named[0])} times"
+                return f"do {{{_text(named[0])}}} times"
 
     # for x in range(N)
     if right and right.type == "call":
@@ -83,10 +83,10 @@ def _for_header(node) -> str:
             named = args.named_children
             if len(named) == 1:
                 n = _text(named[0])
-                return f"for {left_text} from 0 to {n} - 1"
+                return f"for {{{left_text}}} from 0 to {{{n}}} - 1"
 
     # default
-    return f"for each {left_text} in {right_text}"
+    return f"for each {{{left_text}}} in {{{right_text}}}"
 
 
 def _function_header(node) -> str:
@@ -116,7 +116,7 @@ def _function_header(node) -> str:
                 inner = child.named_children[0] if child.named_children else None
                 param_parts.append("**" + (_text(inner) if inner else "kwargs"))
 
-    return f"function {name_text}({', '.join(param_parts)})"
+    return f"FUNCTION {name_text}({', '.join(param_parts)})"
 
 
 def _assignment_line(node) -> str:
