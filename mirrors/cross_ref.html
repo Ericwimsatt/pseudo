@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pseudocode: cross_ref.py</title>
+<link rel="stylesheet" href="pseudo.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/pseudo/cross_ref.py">class CrossReference:
+    def __init__(self):
+        self.project = jedi.Project(path=str(Path.cwd()))
+        self.function_defs: Dict[str, List[Tuple[str, int, str]]] = {}
+        self.function_calls: Dict[str, List[Tuple[str, int, str]]] = {}
+        self.var_assignments: Dict[str, List[Tuple[str, int, str, Optional[str], int]]] = {}
+        self.var_usages: Dict[str, List[Tuple[str, int, str, Optional[str]]]] = {}
+        self.function_params: Dict[str, List[Tuple[str, int, str, str]]] = {}
+        self.function_bodies: Dict[str, List[Tuple[str, int, int]]] = {}
+        self.call_graph: Dict[str, List[Tuple[str, int, str]]] = {}
+        self.indexed_files: Set[str] = set()
+        self._basename_to_path: Dict[str, List[str]] = {}
+        self._file_srcs: Dict[str, str] = {}
+        # function name -&gt; list of (file, line, column) for definition positions
+        self._func_def_positions: Dict[str, List[Tuple[str, int, int]]] = {}
+        self._func_calls_loaded: Set[str] = set()
+
+    def add_source_file(self, py_path: str) -&gt; None:
+        py_path = str(Path(py_path).resolve())
+        if py_path in self.indexed_files:
+            return
+        self.indexed_files.add(py_path)
+
+        basename = Path(py_path).name
+        self._basename_to_path.setdefault(basename, []).append(py_path)
+
+        src = Path(py_path).read_text(encoding="utf-8", errors="replace")
+        self._file_srcs[py_path] = src
+        script = jedi.Script(code=src, path=py_path, project=self.project)
+        self._index_script(script, py_path)
+
+    def _resolve_file(self, name_or_path: str) -&gt; Optional[str]:
+        p = Path(name_or_path)
+        if p.is_absolute() and str(p) in self.indexed_files:
+            return str(p)
+        if name_or_path in self._basename_to_path:
+            matches = self._basename_to_path[name_or_path]
+            return matches[0]
+        for full_path in self.indexed_files:
+            if full_path.endswith(name_or_path):
+                return full_path
+        return None
+
+    def add_source_dir(self, dir_path: str) -&gt; None:
+        for py_file in sorted(Path(dir_path).rglob("*.py")):
+            self.add_source_file(str(py_file))
+
+    def _get_source_line(self, file_path: str, line: int) -&gt; str:
+        src = self._file_srcs.get(file_path, "")
+        if not src:
+            try:
+                src = Path(file_path).read_text(encoding="utf-8", errors="replace")
+                self._file_srcs[file_path] = src
+            except Exception:
+                return ""
+        lines = src.split("\n")
+        if 1 &lt;= line &lt;= len(lines):
+            return lines[line - 1].strip()
+        return ""
+
+    def _get_source_range(self, file_path: str, start_line: int, end_line: int) -&gt; str:
+        src = self._file_srcs.get(file_path, "")
+        if not src:
+            try:
+                src = Path(file_path).read_text(encoding="utf-8", errors="replace")
+                self._file_srcs[file_path] = src
+            except Exception:
+                return ""
+        lines = src.split("\n")
+        return "\n".join(lines[start_line - 1 : end_line])
+
+    def _find_enclosing_function(self, name) -&gt; Optional[str]:
+        parent = name.parent()
+        while parent is not None:
+            if parent.type == "function":
+                return parent.name
+            parent = parent.parent()
+        return None
+
+    def _index_script(self, script: jedi.Script, py_path: str) -&gt; None:
+        all_names = script.get_names(all_scopes=True, definitions=True)
+
+        for name in all_names:
+            if name.type == "function" and name.is_definition():
+                end_line, _ = name.get_definition_end_position()
+                func_text = self._get_source_range(py_path, name.line, end_line)
+                self.function_defs.setdefault(name.name, []).append(
+                    (py_path, name.line, func_text)
+                )
+                self.function_bodies.setdefault(name.name, []).append(
+                    (py_path, name.line, end_line)
+                )
+                self._func_def_positions.setdefault(name.name, []).append(
+                    (py_path, name.line, name.column)
+                )
+
+            elif name.type == "param" and name.is_definition():
+                p = name.parent()
+                func_name = p.name if p and p.type == "function" else "?"
+                self.function_params.setdefault(name.name, []).append(
+                    (py_path, name.line, func_name, name.description)
+                )
+
+            elif name.is_definition() and name.type not in (
+                "function",
+                "class",
+                "module",
+                "param",
+            ):
+                source_text = self._get_source_line(py_path, name.line)
+                enclosing_func = self._find_enclosing_function(name)
+                self.var_assignments.setdefault(name.name, []).append(
+                    (py_path, name.line, source_text, enclosing_func, name.line)
+                )
+
+        ref_names = script.get_names(
+            all_scopes=True, definitions=False, references=True
+        )
+
+        for name in ref_names:
+            source_text = self._get_source_line(py_path, name.line)
+            enclosing_func = self._find_enclosing_function(name)
+            self.var_usages.setdefault(name.name, []).append(
+                (py_path, name.line, source_text, enclosing_func)
+            )
+
+    def _load_function_calls(self, func_name: str) -&gt; None:
+        if func_name in self._func_calls_loaded:
+            return
+        self._func_calls_loaded.add(func_name)
+
+        positions = self._func_def_positions.get(func_name, [])
+        seen = set()
+
+        for file_path, line, col in positions:
+            src = self._file_srcs.get(file_path)
+            if src is None:
+                try:
+                    src = Path(file_path).read_text(
+                        encoding="utf-8", errors="replace"
+                    )
+                    self._file_srcs[file_path] = src
+                except Exception:
+                    continue
+
+            try:
+                s = jedi.Script(code=src, path=file_path, project=self.project)
+                refs = s.get_references(line, col)
+            except Exception:
+                continue
+
+            for ref in refs:
+                if not ref.is_definition() and ref.module_path:
+                    ref_path = str(ref.module_path)
+                    key = (ref_path, ref.line)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    ref_text = self._get_source_line(ref_path, ref.line)
+                    self.function_calls.setdefault(func_name, []).append(
+                        (ref_path, ref.line, ref_text)
+                    )
+                    self.call_graph.setdefault(func_name, []).append(
+                        (ref_path, ref.line, ref_text)
+                    )
+
+    def find_function_calls(
+        self, func_name: str, source_file_hint: str = ""
+    ) -&gt; List[Tuple[str, int, str]]:
+        self._load_function_calls(func_name)
+        calls = self.function_calls.get(func_name, [])
+        if source_file_hint:
+            full = self._resolve_file(source_file_hint)
+            if full:
+                filtered = [c for c in calls if c[0] == full]
+                if filtered:
+                    return filtered
+        return calls
+
+    def get_function_definition(
+        self, func_name: str
+    ) -&gt; Optional[Tuple[str, int, str]]:
+        defs = self.function_defs.get(func_name, [])
+        if defs:
+            return defs[0]
+        return None
+
+    def trace_variable(
+        self, var_name: str, source_file: str, line: int
+    ) -&gt; List[dict]:
+        full = self._resolve_file(source_file)
+        if full:
+            source_file = full
+        return self._trace_var(var_name, source_file, line, set())
+
+    def _trace_var(
+        self, var_name: str, source_file: str, line: int, visited: Set[str]
+    ) -&gt; List[dict]:
+        if var_name in visited:
+            return [
+                {
+                    "variable": var_name,
+                    "type": "cycle",
+                    "message": "circular reference",
+                }
+            ]
+        visited = visited | {var_name}
+
+        assignments = self.var_assignments.get(var_name, [])
+        relevant = [
+            a for a in assignments if a[0] == source_file and a[4] &lt;= line
+        ]
+        relevant.sort(key=lambda x: x[4], reverse=True)
+
+        if not relevant:
+            params = self.function_params.get(var_name, [])
+            param_in_file = [p for p in params if p[0] == source_file]
+            if param_in_file:
+                p = param_in_file[0]
+                func_name = p[2]
+                calls_to_func = self.find_function_calls(func_name)
+                if calls_to_func:
+                    paths = []
+                    for call_file, call_line, call_text in calls_to_func:
+                        if call_file == source_file:
+                            paths.append(
+                                {
+                                    "variable": var_name,
+                                    "type": "parameter",
+                                    "of_function": func_name,
+                                    "file": call_file,
+                                    "line": call_line,
+                                    "call_context": call_text,
+                                    "chain": [
+                                        {
+                                            "variable": var_name,
+                                            "type": "parameter",
+                                            "file": p[0],
+                                            "line": p[1],
+                                        }
+                                    ],
+                                }
+                            )
+                    if paths:
+                        return paths
+                return [
+                    {
+                        "variable": var_name,
+                        "type": "parameter",
+                        "of_function": func_name,
+                        "file": p[0],
+                        "line": p[1],
+                        "chain": [
+                            {
+                                "variable": var_name,
+                                "type": "parameter",
+                                "file": p[0],
+                                "line": p[1],
+                            }
+                        ],
+                    }
+                ]
+            return [
+                {
+                    "variable": var_name,
+                    "type": "unknown",
+                    "message": "no definition found",
+                }
+            ]
+
+        result = []
+        for assign_file, assign_line, assign_text, assign_func, _ in relevant[:3]:
+            chain = [
+                {
+                    "variable": var_name,
+                    "type": "assignment",
+                    "file": assign_file,
+                    "line": assign_line,
+                    "context": assign_text,
+                    "function": assign_func,
+                }
+            ]
+            result.append(
+                {
+                    "variable": var_name,
+                    "type": "assignment",
+                    "file": assign_file,
+                    "line": assign_line,
+                    "context": assign_text,
+                    "function": assign_func,
+                    "chain": chain,
+                }
+            )
+        return result
+
+    def get_word_info(self, word: str, source_file: str, line: int) -&gt; dict:
+        is_function_def = False
+        is_function_call = False
+        is_variable = False
+
+        if word in self.function_defs:
+            for f_file, f_line, f_text in self.function_defs[word]:
+                if f_file == source_file and abs(f_line - line) &lt; 3:
+                    is_function_def = True
+                    break
+
+        if word in self.function_calls:
+            for c_file, c_line, c_text in self.function_calls[word]:
+                if c_file == source_file and abs(c_line - line) &lt; 3:
+                    is_function_call = True
+                    break
+
+        if word in self.var_assignments or word in self.var_usages:
+            is_variable = True
+
+        return {
+            "word": word,
+            "is_function_def": is_function_def,
+            "is_function_call": is_function_call,
+            "is_variable": is_variable,
+        }</p>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div id="modal-box" class="modal-box" onclick="event.stopPropagation()">
+    <div id="modal-content"></div>
+    <button class="modal-close" onclick="closeModal()">close</button>
+  </div>
+</div>
+
+<script>
+var modalOverlay = document.getElementById('modal-overlay');
+var modalContent = document.getElementById('modal-content');
+
+function getWordAtPosition(range) {
+  if (!range) return null;
+  var node = range.startContainer;
+  if (node.nodeType !== 3) return null;
+  var text = node.textContent;
+  var pos = range.startOffset;
+  if (pos === undefined || text.length === 0) return null;
+  var start = pos;
+  while (start > 0 && /\w/.test(text[start - 1])) start--;
+  var end = pos;
+  while (end < text.length && /\w/.test(text[end])) end++;
+  if (start === end) return null;
+  var word = text.slice(start, end);
+  return {word: word, node: node, offset: pos};
+}
+
+function showModal(x, y) {
+  var box = document.getElementById('modal-box');
+  modalOverlay.style.display = 'flex';
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var bx = Math.min(x, vw - 420);
+  var by = Math.min(y, vh - 300);
+  box.style.left = Math.max(10, bx) + 'px';
+  box.style.top = Math.max(10, by) + 'px';
+}
+
+window.closeModal = function(e) {
+  if (e && e.target !== modalOverlay && e.target.className !== 'modal-close') return;
+  modalOverlay.style.display = 'none';
+};
+
+document.addEventListener('htmx:beforeRequest', function(evt) {
+  modalContent.innerHTML = '<div class="modal-loading">searching...</div>';
+});
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+  var wordEl = document.getElementById('modal-word-label');
+  if (wordEl) {
+    document.getElementById('modal-box').querySelector('.modal-word').textContent = wordEl.textContent;
+  }
+});
+
+document.addEventListener('mousedown', function(e) {
+  var p = e.target.closest('p');
+  if (!p) return;
+  if (e.target.closest('.modal-overlay, .modal-box, .modal-close')) return;
+
+  var isFnDef = e.target.classList.contains('fn-name');
+  var isVarName = e.target.classList.contains('var-name');
+  var word = null;
+
+  if (isFnDef) {
+    word = e.target.dataset.fn;
+  } else if (isVarName) {
+    word = e.target.dataset.var;
+  } else {
+    var range;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    }
+    var info = getWordAtPosition(range);
+    if (!info) return;
+    word = info.word;
+    if (/^(if|else|otherwise|for|do|while|return|function|set|to|add|subtract|multiply|divide|pass|break|continue|from|in|each|times|not|and|or|True|False|None|mod)$/i.test(word)) return;
+    if (/^\d+(\.\d+)?$/.test(word)) return;
+    if (/^['"]/.test(word)) return;
+  }
+  if (!word) return;
+
+  var sourceFile = p.dataset.sourceFile || '';
+  var sourceLine = p.dataset.sourceLine || '1';
+
+  if (isFnDef || p.classList.contains('pseudo-function')) {
+    var fnName = isFnDef ? word : (p.querySelector('.fn-name') || {}).dataset?.fn;
+    if (!fnName) return;
+    htmx.ajax('GET', '/api/function-refs?fn=' + encodeURIComponent(fnName) + '&file=' + encodeURIComponent(sourceFile), {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  } else {
+    htmx.ajax('GET', '/api/var-trace?var=' + encodeURIComponent(word) + '&file=' + encodeURIComponent(sourceFile) + '&line=' + sourceLine, {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  }
+});
+</script>
+</body>
+</html>

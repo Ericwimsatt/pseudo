@@ -1,7 +1,7 @@
 """
 project_to_pseudo.py
 
-Convert all Python files in a project directory to pseudocode HTML,
+Convert all Python files in a project directory to interactive pseudocode HTML,
 mirroring the folder structure under pseudo's mirrors/ directory.
 
 Usage:
@@ -9,9 +9,6 @@ Usage:
 
 Output:
     mirrors/<project_dir_name>/<relative_path>.html
-
-The CSS path in each HTML file is adjusted to point back to
-mirrors/pseudo.css relative to the output file's depth.
 """
 
 import sys
@@ -20,46 +17,14 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from file_to_pseudo import _parse, _convert, _escape, _wrap_kw, MIRRORS_DIR
+from file_to_pseudo import _parse, _convert, _to_html, MIRRORS_DIR
 
 
-# ---------------------------------------------------------------------------
-# HTML writer (CSS-path aware)
-# ---------------------------------------------------------------------------
+def _to_html_css(lines: list, source_name: str, source_path: str, css_rel_path: str) -> str:
+    return _to_html(lines, source_name, source_path, css_rel_path)
 
-def _to_html(lines: list, source_name: str, css_rel_path: str) -> str:
-    """Convert (depth, text, css_class) tuples to HTML with a custom CSS path."""
-    parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        f"<title>Pseudocode: {source_name}</title>",
-        f'<link rel="stylesheet" href="{css_rel_path}">',
-        "</head>",
-        "<body>",
-    ]
-    for depth, text, css_class in lines:
-        indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * depth
-        escaped = _wrap_kw(_escape(text), css_class)
-        parts.append(f'<p class="{css_class}">{indent}{escaped}</p>')
-    parts += ["</body>", "</html>"]
-    return "\n".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Project converter
-# ---------------------------------------------------------------------------
 
 def convert_project(project_path: str) -> None:
-    """
-    Convert all .py files in project_path to pseudocode HTML.
-
-    The output mirrors the source folder structure under:
-        mirrors/<project_dir_name>/
-
-    Args:
-        project_path: Path to the root of the project directory.
-    """
     project_dir = Path(project_path).resolve()
     if not project_dir.is_dir():
         raise ValueError(f"Not a directory: {project_dir}")
@@ -78,8 +43,6 @@ def convert_project(project_path: str) -> None:
         rel_path = src_path.relative_to(project_dir)
         output_path = output_base / rel_path.with_suffix(".html")
 
-        # Compute relative path from the output file back to mirrors/ for CSS.
-        # e.g. mirrors/proj/sub/file.html  →  depth=2  →  ../../pseudo.css
         depth = len(output_path.relative_to(MIRRORS_DIR).parts) - 1
         css_rel_path = ("../" * depth) + "pseudo.css"
 
@@ -90,7 +53,7 @@ def convert_project(project_path: str) -> None:
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
-            _to_html(lines, src_path.name, css_rel_path),
+            _to_html_css(lines, src_path.name, str(project_dir / rel_path), css_rel_path),
             encoding="utf-8",
         )
         print(f"  {rel_path}  →  {output_path.relative_to(MIRRORS_DIR.parent)}")

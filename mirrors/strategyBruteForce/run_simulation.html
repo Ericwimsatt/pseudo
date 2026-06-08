@@ -3,63 +3,64 @@
 <head>
 <title>Pseudocode: run_simulation.py</title>
 <link rel="stylesheet" href="../pseudo.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
-<p class="pseudo-function"><span class="kw">function</span> calc_blind_payout(player_rank):</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> player_rank &lt;= 1:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 500</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt;= 10:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 50</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt;= 166:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 10</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt;= 322:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 3</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt;= 1599:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1.5</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt;= 1609:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">otherwise</span>:</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0</p>
-<p class="pseudo-function"><span class="kw">function</span> play_game(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set deck to Deck()</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set player_hand to sorted(deck.draw(2))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set board to []</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set dead_cards to deck.pull_many(dead_card_maker(player_hand))</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set dealer_hand to deck.draw(2)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 0</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> pre_flop_strategy(player_hand, dead_cards):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 4</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(3) to board</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> play_bet == 0 and  post_flop_strategy(player_hand, board, dead_cards):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 2</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(2) to board</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> play_bet == 0:</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> river_strategy(player_hand, board, dead_cards):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set play_bet to 1</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Evaling hand")</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(player_hand)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(board)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(dealer_hand)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// evaluation.hand_summary(board, [player_hand, dealer_hand])</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set dealer_rank to evaluation.evaluate(dealer_hand, board)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set player_rank to evaluation.evaluate(player_hand, board)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set ante_bet to 0</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// Check if dealer qualifies</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// 6185 is max rank for a pair</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> dealer_rank &lt;= 6185:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set ante_bet to 1</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set result to 0</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// fold</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> play_bet == 0:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to -2</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank == dealer_rank:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to 0</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else if</span> player_rank &lt; dealer_rank:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set blind_payout to calc_blind_payout(player_rank)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to play_bet + blind_payout + ante_bet</p>
-<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">otherwise</span>:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result to - play_bet - ante_bet - 1</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return result, {
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="calc_blind_payout" data-line="4">calc_blind_payout</span>(player_rank):</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if player_rank &lt;= 1:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 500</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 10:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 50</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 166:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 10</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 322:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 3</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 1599:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1.5</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt;= 1609:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0</p>
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="play_game" data-line="20">play_game</span>(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="deck" data-line="21">deck</span> to Deck()</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="player_hand" data-line="22">player_hand</span> to sorted(deck.draw(2))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="board" data-line="23">board</span> to []</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="dead_cards" data-line="24">dead_cards</span> to deck.pull_many(dead_card_maker(player_hand))</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="dealer_hand" data-line="26">dealer_hand</span> to deck.draw(2)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="play_bet" data-line="28">play_bet</span> to 0</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if pre_flop_strategy(player_hand, dead_cards):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="play_bet" data-line="31">play_bet</span> to 4</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(3) to <span class="var-name" data-var="board" data-line="33">board</span></p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0 and  post_flop_strategy(player_hand, board, dead_cards):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="play_bet" data-line="35">play_bet</span> to 2</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;add deck.draw(2) to <span class="var-name" data-var="board" data-line="37">board</span></p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0:</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if river_strategy(player_hand, board, dead_cards):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="play_bet" data-line="40">play_bet</span> to 1</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Evaling hand")</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(player_hand)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(board)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// Card.print_pretty_cards(dealer_hand)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// evaluation.hand_summary(board, [player_hand, dealer_hand])</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="dealer_rank" data-line="48">dealer_rank</span> to evaluation.evaluate(dealer_hand, board)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="player_rank" data-line="49">player_rank</span> to evaluation.evaluate(player_hand, board)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="ante_bet" data-line="50">ante_bet</span> to 0</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// Check if dealer qualifies</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// 6185 is max rank for a pair</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if dealer_rank &lt;= 6185:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="ante_bet" data-line="55">ante_bet</span> to 1</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="57">result</span> to 0</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// fold</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;if play_bet == 0:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="60">result</span> to -2</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank == dealer_rank:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="62">result</span> to 0</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;else if player_rank &lt; dealer_rank:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="blind_payout" data-line="64">blind_payout</span> to calc_blind_payout(player_rank)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="65">result</span> to play_bet + blind_payout + ante_bet</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;otherwise:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="result" data-line="67">result</span> to - play_bet - ante_bet - 1</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;return result, {
         "player_wins": 1 if result &gt; 0 else 0,
         "dealer_wins": 1 if result &lt; 0 else 0,
         "pushes": 1 if result == 0 else 0,
@@ -72,9 +73,9 @@
         "folds": 1 if play_bet == 0 else 0,
         "bad_folds": 1 if play_bet == 0 and player_rank &lt; dealer_rank else 0
     }</p>
-<p class="pseudo-function"><span class="kw">function</span> run_simulation(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker, hands):</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set total to 0</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set play_stats to {
+<p class="pseudo-function" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py"><span class="kw">FUNCTION</span><span class="fn-name" data-fn="run_simulation" data-line="84">run_simulation</span>(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker, hands):</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="total" data-line="85">total</span> to 0</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="play_stats" data-line="86">play_stats</span> to {
         "player_wins": 0,
         "dealer_wins": 0,
         "pushes": 0,
@@ -87,33 +88,135 @@
         "folds": 0,
         "bad_folds": 0
     }</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">do</span> hands times:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result, round_data to play_game(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add result to total</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each key in play_stats:</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add round_data.get(key, 0) to play_stats[key]</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print("Average result: {}".format(total / hands))</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each key in play_stats:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("TOTAL {} : {}".format(key, play_stats[key]))</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print("________")</p>
-<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each key in play_stats:</p>
-<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("AVERAGE {} : {}".format(key, play_stats[key] / hands))</p>
-<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return total / hands</p>
-<p class="pseudo-if"><span class="kw">if</span> __name__ == "__main__":</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set always_bet_no_deads to run_simulation(lambda hand, dead_cards: True, base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
-<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set base_no_deads to run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// base = run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'],</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// change = run_simulation(pass_if_dead_pair, base_strategies['post_flop'], base_strategies['river'],</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// change_ace = run_simulation(pass_if_dead_pair_unless_ace_queen, base_strategies['post_flop'], base_strategies['river'],</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands =100000)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// change_pair = run_simulation(pass_if_dead_pair_unless_pocket_pair, base_strategies['post_flop'], base_strategies['river'],</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Base no deads: {}".format(base_no_deads))</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Base-always dead card pair: {}".format(base))</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change strat -always dead card pair: {}".format(change))</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless ace queen -always dead card pair:: {}".format(change_ace))</p>
-<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless pocket pair -always dead card pair:: {}".format(change_pair))</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;do hands times:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set result, round_data to play_game(pre_flop_strategy, post_flop_strategy, river_strategy, dead_card_maker)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add <span class="var-name" data-var="result" data-line="101">result</span> to <span class="var-name" data-var="total" data-line="101">total</span></p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add round_data.get(key, 0) to play_stats[key]</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;print("Average result: {}".format(total / hands))</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("TOTAL {} : {}".format(key, play_stats[key]))</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;print("________")</p>
+<p class="pseudo-for" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;for each key in play_stats:</p>
+<p class="pseudo-raw" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print("AVERAGE {} : {}".format(key, play_stats[key] / hands))</p>
+<p class="pseudo-return" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;return total / hands</p>
+<p class="pseudo-if" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">if __name__ == "__main__":</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="always_bet_no_deads" data-line="113">always_bet_no_deads</span> to run_simulation(lambda hand, dead_cards: True, base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
+<p class="pseudo-assignment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;set <span class="var-name" data-var="base_no_deads" data-line="115">base_no_deads</span> to run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'], hands=10000000)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// base = run_simulation(base_strategies['pre_flop'], base_strategies['post_flop'], base_strategies['river'],</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// change = run_simulation(pass_if_dead_pair, base_strategies['post_flop'], base_strategies['river'],</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// change_ace = run_simulation(pass_if_dead_pair_unless_ace_queen, base_strategies['post_flop'], base_strategies['river'],</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands =100000)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// change_pair = run_simulation(pass_if_dead_pair_unless_pocket_pair, base_strategies['post_flop'], base_strategies['river'],</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// dead_card_maker=dead_cards_matching_player_high(1), hands=100000)</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Base no deads: {}".format(base_no_deads))</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Base-always dead card pair: {}".format(base))</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change strat -always dead card pair: {}".format(change))</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless ace queen -always dead card pair:: {}".format(change_ace))</p>
+<p class="pseudo-comment" data-source-file="/Users/ericwimsatt/git/gamble/uthCollusion/strategyBruteForce/run_simulation.py">&nbsp;&nbsp;&nbsp;&nbsp;// print("Change unless pocket pair -always dead card pair:: {}".format(change_pair))</p>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div id="modal-box" class="modal-box" onclick="event.stopPropagation()">
+    <div id="modal-content"></div>
+    <button class="modal-close" onclick="closeModal()">close</button>
+  </div>
+</div>
+
+<script>
+var modalOverlay = document.getElementById('modal-overlay');
+var modalContent = document.getElementById('modal-content');
+
+function getWordAtPosition(range) {
+  if (!range) return null;
+  var node = range.startContainer;
+  if (node.nodeType !== 3) return null;
+  var text = node.textContent;
+  var pos = range.startOffset;
+  if (pos === undefined || text.length === 0) return null;
+  var start = pos;
+  while (start > 0 && /\w/.test(text[start - 1])) start--;
+  var end = pos;
+  while (end < text.length && /\w/.test(text[end])) end++;
+  if (start === end) return null;
+  var word = text.slice(start, end);
+  return {word: word, node: node, offset: pos};
+}
+
+function showModal(x, y) {
+  var box = document.getElementById('modal-box');
+  modalOverlay.style.display = 'flex';
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var bx = Math.min(x, vw - 420);
+  var by = Math.min(y, vh - 300);
+  box.style.left = Math.max(10, bx) + 'px';
+  box.style.top = Math.max(10, by) + 'px';
+}
+
+window.closeModal = function(e) {
+  if (e && e.target !== modalOverlay && e.target.className !== 'modal-close') return;
+  modalOverlay.style.display = 'none';
+};
+
+document.addEventListener('htmx:beforeRequest', function(evt) {
+  modalContent.innerHTML = '<div class="modal-loading">searching...</div>';
+});
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+  var wordEl = document.getElementById('modal-word-label');
+  if (wordEl) {
+    document.getElementById('modal-box').querySelector('.modal-word').textContent = wordEl.textContent;
+  }
+});
+
+document.addEventListener('mousedown', function(e) {
+  var p = e.target.closest('p');
+  if (!p) return;
+  if (e.target.closest('.modal-overlay, .modal-box, .modal-close')) return;
+
+  var isFnDef = e.target.classList.contains('fn-name');
+  var isVarName = e.target.classList.contains('var-name');
+  var word = null;
+
+  if (isFnDef) {
+    word = e.target.dataset.fn;
+  } else if (isVarName) {
+    word = e.target.dataset.var;
+  } else {
+    var range;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    }
+    var info = getWordAtPosition(range);
+    if (!info) return;
+    word = info.word;
+    if (/^(if|else|otherwise|for|do|while|return|function|set|to|add|subtract|multiply|divide|pass|break|continue|from|in|each|times|not|and|or|True|False|None|mod)$/i.test(word)) return;
+    if (/^\d+(\.\d+)?$/.test(word)) return;
+    if (/^['"]/.test(word)) return;
+  }
+  if (!word) return;
+
+  var sourceFile = p.dataset.sourceFile || '';
+  var sourceLine = p.dataset.sourceLine || '1';
+
+  if (isFnDef || p.classList.contains('pseudo-function')) {
+    var fnName = isFnDef ? word : (p.querySelector('.fn-name') || {}).dataset?.fn;
+    if (!fnName) return;
+    htmx.ajax('GET', '/api/function-refs?fn=' + encodeURIComponent(fnName) + '&file=' + encodeURIComponent(sourceFile), {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  } else {
+    htmx.ajax('GET', '/api/var-trace?var=' + encodeURIComponent(word) + '&file=' + encodeURIComponent(sourceFile) + '&line=' + sourceLine, {
+      target: '#modal-content',
+      swap: 'innerHTML'
+    });
+    showModal(e.clientX, e.clientY);
+  }
+});
+</script>
 </body>
 </html>
