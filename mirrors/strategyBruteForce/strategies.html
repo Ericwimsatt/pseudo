@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pseudocode: strategies.py</title>
+<link rel="stylesheet" href="../pseudo.css">
+</head>
+<body>
+<p class="pseudo-comment">// ### UTILITIES ###</p>
+<p class="pseudo-function"><span class="kw">function</span> eval_even_if_unfull(board):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set all_cards to hand + board</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> len(all_cards) &lt; 5:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set extras to []</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set ranks to sorted([Card.get_rank_int(card) for card in all_cards])</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Check 1 card so we don't accidentally make a straight</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set new_suit to Card.next_suit(all_cards[0])</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// if highest card is less than 5 there's a risk we make a straight, so add a 6 to prevent</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> ranks[-1] &lt; 4:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extras.append(Card.new_from_ints(6, new_suit))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ranks.append(6)</p>
+<p class="pseudo-while">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">while</span> len(all_cards) + len(extras) &lt; 5:</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> i from 0 to 5 - 1:</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> i not in ranks:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extras.append(Card.new_from_ints(i, new_suit))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ranks.append(i)</p>
+<p class="pseudo-control">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set hand to hand+extras</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return evaluation.evaluate(hand, board)</p>
+<p class="pseudo-function"><span class="kw">function</span> count_outs(dead_cards):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set player_score to evaluation.evaluate(player_hand, board)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set used_cards to set(player_hand + board)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set deck to Deck()</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;deck.pull_many(used_cards)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set remaining to deck.cards</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set outs to []</p>
+<p class="pseudo-for">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> each card in remaining:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set dealer_score to eval_even_if_unfull([card], board)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> dealer_score &lt; player_score:</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outs.append(card)</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return len(outs)</p>
+<p class="pseudo-comment">// ## Default Strategy ###</p>
+<p class="pseudo-function"><span class="kw">function</span> base_pre_flop(player_hand, dead_cards):</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) == 9 and Card.get_rank_int(player_hand[1]) &gt;= 8:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 10 and Card.get_rank_int(player_hand[1]) == 6:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 11 and Card.get_rank_int(player_hand[1]) == 3:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 12:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-function"><span class="kw">function</span> base_post_flop(player_hand, board, dead_cards):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set hand_rank to evaluation.evaluate(player_hand, board)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> hand_rank &lt;= 3321:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// 5955 is highest pair of 3s rank</p>
+<p class="pseudo-comment">&nbsp;&nbsp;&nbsp;&nbsp;// 6185 is highest pair rank</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> hand_rank &lt;= 5955 and eval_even_if_unfull(board) &gt; 6185:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return False</p>
+<p class="pseudo-function"><span class="kw">function</span> base_river(player_hand, board, dead_cards):</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> count_outs(player_hand, board, dead_cards) &lt; 22:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return False</p>
+<p class="pseudo-comment">// Dead-Card-Dependent</p>
+<p class="pseudo-function"><span class="kw">function</span> pass_if_dead_pair(player_hand, dead_cards):</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> player_hand[0] in dead_cards or player_hand[1] in dead_cards:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return False</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) == 9 and Card.get_rank_int(player_hand[1]) &gt;= 8:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 10 and Card.get_rank_int(player_hand[1]) == 6:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 11 and Card.get_rank_int(player_hand[1]) == 3:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 12:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-function"><span class="kw">function</span> pass_if_dead_pair_unless_ace_queen(player_hand, dead_cards):</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 12 and Card.get_rank_int(player_hand[1]) &gt;= 10:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> player_hand[0] in dead_cards or player_hand[1] in dead_cards:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return False</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) == 9 and Card.get_rank_int(player_hand[1]) &gt;= 8:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 10 and Card.get_rank_int(player_hand[1]) == 6:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 11 and Card.get_rank_int(player_hand[1]) == 3:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-function"><span class="kw">function</span> pass_if_dead_pair_unless_pocket_pair(player_hand, dead_cards):</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;set hand_rank to eval_even_if_unfull(player_hand, [])</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> hand_rank &lt;= 5955:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> player_hand[0] in dead_cards or player_hand[1] in dead_cards:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return False</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) == 9 and Card.get_rank_int(player_hand[1]) &gt;= 8:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 10 and Card.get_rank_int(player_hand[1]) == 6:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 11 and Card.get_rank_int(player_hand[1]) == 3:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> Card.get_rank_int(player_hand[0]) &gt;= 12:</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return True</p>
+<p class="pseudo-comment">// Dead-Card Makers</p>
+<p class="pseudo-function"><span class="kw">function</span> dead_cards_matching_player_high(percentage):</p>
+<p class="pseudo-function">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">function</span> maker(player_hand):</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> random() &lt; percentage:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set player_high_suit to Card.get_suit_int(player_hand[0])</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set new_card_suit to Card.next_suit(player_hand[0])</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set new_card to Card.new_from_ints(Card.get_rank_int(player_hand[0]), new_card_suit)</p>
+<p class="pseudo-if">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> new_card == player_hand[1]:</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set new_card_suit to Card.next_suit(new_card)</p>
+<p class="pseudo-assignment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set new_card to Card.new_from_ints(Card.get_rank_int(player_hand[0]), new_card_suit)</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Card.print_pretty_cards([new_card])</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return [new_card]</p>
+<p class="pseudo-return">&nbsp;&nbsp;&nbsp;&nbsp;return maker</p>
+<p class="pseudo-assignment">set base_strategies to {
+    'pre_flop': base_pre_flop,
+    'post_flop': base_post_flop,
+    'river': base_river
+}</p>
+<p class="pseudo-if"><span class="kw">if</span> __name__ == "__main__":</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print("Out count check")</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('Ah'), Card.new('Kh')], [Card.new('Qh'), Card.new('Jh'), Card.new('2h')]))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('Kh'), Card.new('Ks')], [Card.new('Qh'), Card.new('Jh'), Card.new('2h')]))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('3h'), Card.new('Ks')], [Card.new('Qh'), Card.new('Jh'), Card.new('2c')]))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('Jh'), Card.new('Ks')], [Card.new('Qh'), Card.new('Jd'), Card.new('2c')]))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('Qh'), Card.new('Js')], [Card.new('Qs'), Card.new('Jh'), Card.new('2c')]))</p>
+<p class="pseudo-raw">&nbsp;&nbsp;&nbsp;&nbsp;print(count_outs([Card.new('4h'), Card.new('Ts')], [Card.new('Qs'), Card.new('Jh'), Card.new('2c')]))</p>
+</body>
+</html>

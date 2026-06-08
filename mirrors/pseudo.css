@@ -4,7 +4,7 @@ body {
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
     line-height: 1.6;
-    background: #1e1e2e;
+    background: #011809;
     color: #cdd6f4;
     padding: 2em 3em;
     margin: 0;
@@ -15,52 +15,39 @@ p {
     white-space: pre;
 }
 
-/* function_definition — bold purple */
+/* function_definition — full line purple, keyword bold */
 .pseudo-function {
+    color: #d4c2ea;
+}
+
+.pseudo-function .kw {
     font-weight: bold;
-    color: #cba6f7;
 }
 
 /* return_statement — bold pink/red */
 .pseudo-return {
     font-weight: bold;
-    color: #f38ba8;
+    color: #f6bd99;
 }
 
-/* if_statement, elif_clause, else_clause — italic cyan */
-.pseudo-if {
+/* if_statement, elif_clause, else_clause — keyword italic, rest default */
+.pseudo-if .kw,
+.pseudo-for .kw,
+.pseudo-while .kw {
     font-style: italic;
-    color: #89dceb;
 }
 
-/* for_statement — blue */
-.pseudo-for {
-    color: #89b4fa;
-}
-
-/* while_statement — sky blue */
-.pseudo-while {
-    color: #74c7ec;
-}
-
-/* assignment, augmented_assignment — green */
-.pseudo-assignment {
-    color: #a6e3a1;
-}
+/* assignment, augmented_assignment — default style */
 
 /* comment — muted gray, italic */
 .pseudo-comment {
-    color: #585b70;
+    color: #8a8a8a;
     font-style: italic;
 }
 
 /* break, continue, pass — orange */
 .pseudo-control {
-    color: #fab387;
+    color: #eaaf8a;
 }
 
-/* fallback / unrecognized nodes — dim yellow */
-.pseudo-raw {
-    color: #f9e2af;
-    opacity: 0.75;
-}
+/* fallback / unrecognized nodes — default style */

@@ -16,6 +16,7 @@ with &nbsp; entities (4 per depth level).  No CSS styling is added.
 Transformations applied are documented in transformations.py.
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -280,6 +281,26 @@ def _convert(node, depth: int, out: list) -> None:
 # HTML writer
 # ---------------------------------------------------------------------------
 
+_KW_RE: dict = {
+    "pseudo-if":       re.compile(r"^(if|else if|otherwise)\b"),
+    "pseudo-for":      re.compile(r"^(for|do)\b"),
+    "pseudo-while":    re.compile(r"^(while)\b"),
+    "pseudo-function": re.compile(r"^(function)\b"),
+}
+
+
+def _wrap_kw(text: str, css_class: str) -> str:
+    """Wrap the leading keyword in <span class="kw">...</span>."""
+    pat = _KW_RE.get(css_class)
+    if pat is None:
+        return text
+    m = pat.match(text)
+    if not m:
+        return text
+    kw = m.group(1)
+    return f'<span class="kw">{kw}</span>{text[len(kw):]}'
+
+
 def _escape(text: str) -> str:
     """Escape HTML special characters in pseudocode text."""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -298,7 +319,8 @@ def _to_html(lines: list, source_name: str) -> str:
     ]
     for depth, text, css_class in lines:
         indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * depth
-        parts.append(f'<p class="{css_class}">{indent}{_escape(text)}</p>')
+        escaped = _wrap_kw(_escape(text), css_class)
+        parts.append(f'<p class="{css_class}">{indent}{escaped}</p>')
     parts += ["</body>", "</html>"]
     return "\n".join(parts)
 
